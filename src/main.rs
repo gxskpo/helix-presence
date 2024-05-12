@@ -10,7 +10,7 @@ use time::Duration;
 fn humanize_duration(duration: std::time::Duration) -> String {
     let seconds = duration.as_secs();
     if seconds < 60 {
-        return format!("00:{:02} elapsed", seconds);
+        return format!("00:{seconds:02} elapsed");
     }
 
     let days = seconds / (60 * 60 * 24);
@@ -19,14 +19,11 @@ fn humanize_duration(duration: std::time::Duration) -> String {
     let seconds = seconds % 60;
 
     if days > 0 {
-        format!(
-            "{:02}:{:02}:{:02}:{:02} elapsed",
-            days, hours, minutes, seconds
-        )
+        format!("{days:02}:{hours:02}:{minutes:02}:{seconds:02} elapsed",)
     } else if hours > 0 {
-        format!("{:01}:{:02}:{:02} elapsed", hours, minutes, seconds)
+        format!("{hours:02}:{minutes:02}:{seconds:02} elapsed")
     } else {
-        format!("{:02}:{:02} elapsed", minutes, seconds)
+        format!("{minutes:02}:{seconds:02} elapsed")
     }
 }
 
@@ -50,24 +47,16 @@ fn update_presence(pid: u32, app_id: u64) {
         }
 
         let elapsed = humanize_duration(started_at.unwrap().elapsed().unwrap());
-
         drpc.set_activity(|act| {
-            act.assets(|ass| ass.large_image("logo").large_text("Helix Editor"))
+            act.assets(|assets| assets.large_image("logo").large_text("Helix Editor"))
                 .state(elapsed)
         })
         .expect("Failed to set activity");
-        thread::sleep(Duration::from_millis(200))
+        thread::sleep(Duration::from_millis(200));
     }
 
-    match drpc.clear_activity() {
-        Err(_) => panic!("Failed to clear activity"),
-        _ => (),
-    }
-
-    match drpc.shutdown() {
-        Err(_) => panic!("Failed to close connection"),
-        _ => (),
-    }
+    drpc.clear_activity().expect("Failed to clear activity");
+    drpc.shutdown().expect("Failed to shutdown");
 }
 
 fn get_pid() -> Option<u32> {
@@ -79,16 +68,15 @@ fn get_pid() -> Option<u32> {
         }
     }
 
-    if pd.is_some() {
-        return Some(pd.unwrap().as_u32());
+    if let Some(pd) = pd {
+        return Some(pd.as_u32());
     }
-
     None
 }
 
 fn main() {
     dotenv().ok();
-    let app_id: u64 = 1119080971879321621;
+    let app_id: u64 = 1_119_080_971_879_321_621;
 
     loop {
         let Some(pid) = get_pid() else {
